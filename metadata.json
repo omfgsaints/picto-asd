@@ -1,0 +1,6 @@
+{
+  "name": "PictoWord",
+  "description": "Visual vocabulary and speech app for autistic children to see pictures of typed words and hear them read aloud.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

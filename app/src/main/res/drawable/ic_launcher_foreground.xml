@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Picture Card Frame (AAC / Flashcard Style) -->
+    <path
+        android:pathData="M30,28 L78,28 A6,6 0 0,1 84,34 L84,74 A6,6 0 0,1 78,80 L30,80 A6,6 0 0,1 24,74 L24,34 A6,6 0 0,1 30,28 Z"
+        android:fillColor="#FFFFFF" />
+    
+    <!-- Inner Card Picture Area (Soft Sky Blue) -->
+    <path
+        android:pathData="M29,33 L79,33 A3,3 0 0,1 82,36 L82,62 A3,3 0 0,1 79,65 L29,65 A3,3 0 0,1 26,36 L26,36 A3,3 0 0,1 29,33 Z"
+        android:fillColor="#E0F2FE" />
+        
+    <!-- Cheerful Sun / Star in Card -->
+    <path
+        android:pathData="M40,43 A5,5 0 1,0 40,53 A5,5 0 1,0 40,43"
+        android:fillColor="#FBBF24" />
+        
+    <!-- Mountain / Rolling Hills in Card -->
+    <path
+        android:pathData="M26,62 L42,47 L54,58 L62,51 L82,65 L26,65 Z"
+        android:fillColor="#38BDF8" />
+        
+    <!-- Sound Waves / Speech Symbol (Bottom Right Accent) -->
+    <path
+        android:pathData="M64,68 L70,68 L76,73 L76,63 L70,68 Z"
+        android:fillColor="#2563EB" />
+    <path
+        android:pathData="M78,66 C79,67 79,69 78,70"
+        android:strokeColor="#2563EB"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round" />
+        
+    <!-- Text Line underneath Card Image representing the Word label -->
+    <path
+        android:pathData="M32,72 L58,72"
+        android:strokeColor="#1E293B"
+        android:strokeWidth="3"
+        android:strokeLineCap="round" />
+</vector>

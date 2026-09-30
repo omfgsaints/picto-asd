@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">PictoWord</string>
+    <string name="search_hint">Type any word here…</string>
+    <string name="speak_button">Read Aloud</string>
+    <string name="slow_speech">Slow Speech</string>
+    <string name="spell_button">Spell Out</string>
+    <string name="add_to_sentence">Add to Strip</string>
+    <string name="clear_sentence">Clear Strip</string>
+    <string name="read_sentence">Speak Sentence</string>
+    <string name="tab_explore">Word Explorer</string>
+    <string name="tab_sentence">Sentence Strip</string>
+    <string name="tab_practice">Quiz Game</string>
+    <string name="tab_saved">My Words</string>
+    <string name="calm_mode">Calm Mode</string>
+</resources>
