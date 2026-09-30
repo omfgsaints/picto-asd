@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -48,6 +50,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -69,32 +72,26 @@ fun QuizGameScreen(
     val feedback by viewModel.quizFeedback.collectAsStateWithLifecycle()
     val isCelebration by viewModel.quizCelebration.collectAsStateWithLifecycle()
 
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
             CenterAlignedTopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "🎯 Listen & Match",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Black,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
+                    Text(
+                        text = "⭐ Picture Game",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
                 },
                 actions = {
                     // Star Score Badge
                     Surface(
                         shape = RoundedCornerShape(16.dp),
                         color = Color(0xFFFEF3C7),
-                        border = CardDefaults.outlinedCardBorder().copy(
-                            brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFF59E0B)),
-                            width = 1.5.dp
-                        ),
-                        modifier = Modifier
-                            .padding(end = 12.dp)
-                            .testTag("score_badge")
+                        modifier = Modifier.padding(end = 12.dp)
                     ) {
                         Row(
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -122,136 +119,221 @@ fun QuizGameScreen(
             )
         }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Target Prompt Banner
-            Card(
+        if (isLandscape) {
+            // Landscape Dual-Pane Quiz
+            Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("quiz_prompt_card"),
-                shape = RoundedCornerShape(24.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
-                ),
-                border = CardDefaults.outlinedCardBorder().copy(
-                    brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
-                )
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                // Left Pane: Prompt Card, Audio Replay, Feedback, Next Button
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(18.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .weight(0.42f)
+                        .fillMaxHeight()
+                        .verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        text = "Listen carefully:",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary
+                    QuizPromptBanner(
+                        targetCard = targetCard,
+                        onHearAgain = { targetCard?.let { viewModel.speakCard(it) } }
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
-
                     Text(
-                        text = targetCard?.label ?: "...",
-                        style = MaterialTheme.typography.displayMedium,
-                        fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = TextAlign.Center
+                        text = feedback,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isCelebration) Color(0xFF059669) else MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 8.dp)
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Hear again button
-                    FilledTonalButton(
-                        onClick = {
-                            targetCard?.let { viewModel.speakCard(it) }
-                        },
+                    Button(
+                        onClick = { viewModel.startNewQuizRound() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .testTag("quiz_next_round_button"),
                         shape = RoundedCornerShape(16.dp),
-                        modifier = Modifier.testTag("quiz_replay_speech_button")
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.VolumeUp,
-                            contentDescription = "Hear word again",
-                            modifier = Modifier.size(22.dp)
+                        Text(
+                            text = "Next Word",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Hear Again 🔊",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp
-                        )
+                        Icon(Icons.Default.ArrowForward, contentDescription = null)
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Cheerful Feedback Banner
-            Text(
-                text = feedback,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = if (isCelebration) Color(0xFF059669) else MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 12.dp)
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // 4 Big Picture Choice Cards (2x2 Grid)
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                val chunked = options.chunked(2)
-                chunked.forEach { rowCards ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
-                        rowCards.forEach { card ->
-                            QuizChoiceCard(
-                                card = card,
-                                isTarget = card.word.equals(targetCard?.word, ignoreCase = true),
-                                isCelebration = isCelebration,
-                                onSelect = { viewModel.onQuizAnswer(card) },
-                                modifier = Modifier.weight(1f)
-                            )
+                // Right Pane: 2x2 Choice Cards
+                Column(
+                    modifier = Modifier
+                        .weight(0.58f)
+                        .fillMaxHeight()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    val chunked = options.chunked(2)
+                    chunked.forEach { rowCards ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            rowCards.forEach { card ->
+                                QuizChoiceCard(
+                                    card = card,
+                                    isTarget = card.word.equals(targetCard?.word, ignoreCase = true),
+                                    isCelebration = isCelebration,
+                                    onSelect = { viewModel.onQuizAnswer(card) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
                         }
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Next Round Button
-            Button(
-                onClick = { viewModel.startNewQuizRound() },
+        } else {
+            // Portrait Vertical Flow
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp)
-                    .testTag("quiz_next_round_button"),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                QuizPromptBanner(
+                    targetCard = targetCard,
+                    onHearAgain = { targetCard?.let { viewModel.speakCard(it) } }
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Text(
-                    text = "Next Word",
+                    text = feedback,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = if (isCelebration) Color(0xFF059669) else MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    val chunked = options.chunked(2)
+                    chunked.forEach { rowCards ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            rowCards.forEach { card ->
+                                QuizChoiceCard(
+                                    card = card,
+                                    isTarget = card.word.equals(targetCard?.word, ignoreCase = true),
+                                    isCelebration = isCelebration,
+                                    onSelect = { viewModel.onQuizAnswer(card) },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Button(
+                    onClick = { viewModel.startNewQuizRound() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(54.dp)
+                        .testTag("quiz_next_round_button"),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text(
+                        text = "Next Word",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Icon(Icons.Default.ArrowForward, contentDescription = null)
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuizPromptBanner(
+    targetCard: WordCard?,
+    onHearAgain: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("quiz_prompt_card"),
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+        ),
+        border = CardDefaults.outlinedCardBorder().copy(
+            brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Listen carefully:",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = targetCard?.label ?: "...",
+                style = MaterialTheme.typography.displayMedium,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            FilledTonalButton(
+                onClick = onHearAgain,
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.testTag("quiz_replay_speech_button")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.VolumeUp,
+                    contentDescription = "Hear word again",
+                    modifier = Modifier.size(22.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Icon(
-                    imageVector = Icons.Default.ArrowForward,
-                    contentDescription = null,
-                    modifier = Modifier.size(22.dp)
+                Text(
+                    text = "Hear Again 🔊",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 15.sp
                 )
             }
         }
@@ -266,54 +348,71 @@ private fun QuizChoiceCard(
     onSelect: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val highlightCorrect = isCelebration && isTarget
     val scale by animateFloatAsState(
-        targetValue = if (isCelebration && isTarget) 1.08f else 1.0f,
+        targetValue = if (highlightCorrect) 1.05f else 1.0f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
+            stiffness = Spring.StiffnessLow
         ),
         label = "quiz_card_scale"
     )
 
     Card(
         modifier = modifier
-            .height(160.dp)
             .scale(scale)
+            .height(140.dp)
             .clip(RoundedCornerShape(22.dp))
             .clickable { onSelect() }
             .testTag("quiz_card_${card.word}"),
         shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isCelebration && isTarget) Color(0xFFD1FAE5) else card.category.lightBgColor
+            containerColor = if (highlightCorrect) Color(0xFFD1FAE5) else card.category.lightBgColor
         ),
         border = CardDefaults.outlinedCardBorder().copy(
             brush = androidx.compose.ui.graphics.SolidColor(
-                if (isCelebration && isTarget) Color(0xFF059669) else card.category.primaryColor.copy(alpha = 0.35f)
+                if (highlightCorrect) Color(0xFF10B981) else card.category.primaryColor.copy(alpha = 0.4f)
             ),
-            width = if (isCelebration && isTarget) 3.dp else 1.5.dp
+            width = if (highlightCorrect) 3.dp else 1.5.dp
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (highlightCorrect) 8.dp else 2.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = card.emoji,
-                fontSize = 58.sp,
-                textAlign = TextAlign.Center
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = card.label,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.padding(10.dp)
+            ) {
+                Text(
+                    text = card.emoji,
+                    fontSize = 46.sp,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = card.label,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.Center
+                )
+            }
+
+            if (highlightCorrect) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .size(24.dp)
+                        .background(Color(0xFF10B981), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = "✓", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                }
+            }
         }
     }
 }

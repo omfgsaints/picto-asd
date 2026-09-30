@@ -245,6 +245,12 @@ class PictoWordViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    fun pickRandomWord() {
+        triggerHaptic()
+        val randomCard = PresetDictionary.allWords.randomOrNull() ?: return
+        selectWord(randomCard)
+    }
+
     fun selectCategory(category: WordCategory?) {
         triggerHaptic()
         _selectedCategory.value = category
