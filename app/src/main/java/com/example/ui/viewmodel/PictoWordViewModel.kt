@@ -10,13 +10,21 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.dictionary.PresetDictionary
 import com.example.data.local.AppDatabase
+import com.example.data.model.LetterBankTile
+import com.example.data.model.SentenceExercise
+import com.example.data.model.SentenceIdentifyItem
+import com.example.data.model.SpellingWordItem
 import com.example.data.model.WordCard
 import com.example.data.model.WordCategory
 import com.example.data.network.NetworkMonitor
 import com.example.data.network.OnlineImageFetcher
+import com.example.data.repository.SentenceIdentifyCatalog
+import com.example.data.repository.SentenceTrainingCatalog
+import com.example.data.repository.SpellingCatalog
 import com.example.data.repository.WordRepository
 import com.example.data.tts.TextToSpeechHelper
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -119,6 +127,75 @@ class PictoWordViewModel(application: Application) : AndroidViewModel(applicatio
     private val _quizCelebration = MutableStateFlow(false)
     val quizCelebration: StateFlow<Boolean> = _quizCelebration.asStateFlow()
 
+    // Sentence Training State
+    private val _currentTrainingLevel = MutableStateFlow(1)
+    val currentTrainingLevel: StateFlow<Int> = _currentTrainingLevel.asStateFlow()
+
+    private val _currentExerciseIndex = MutableStateFlow(0)
+    val currentExerciseIndex: StateFlow<Int> = _currentExerciseIndex.asStateFlow()
+
+    private val _currentExercise = MutableStateFlow(SentenceTrainingCatalog.levels[0].exercises[0])
+    val currentExercise: StateFlow<SentenceExercise> = _currentExercise.asStateFlow()
+
+    private val _trainingPlacedCards = MutableStateFlow<List<WordCard?>>(listOf(null, null))
+    val trainingPlacedCards: StateFlow<List<WordCard?>> = _trainingPlacedCards.asStateFlow()
+
+    private val _trainingAvailableChoices = MutableStateFlow<List<WordCard>>(emptyList())
+    val trainingAvailableChoices: StateFlow<List<WordCard>> = _trainingAvailableChoices.asStateFlow()
+
+    private val _trainingFeedback = MutableStateFlow("Tap the cards in order to build the sentence!")
+    val trainingFeedback: StateFlow<String> = _trainingFeedback.asStateFlow()
+
+    private val _isTrainingCompleted = MutableStateFlow(false)
+    val isTrainingCompleted: StateFlow<Boolean> = _isTrainingCompleted.asStateFlow()
+
+    private val _isTrainingCelebration = MutableStateFlow(false)
+    val isTrainingCelebration: StateFlow<Boolean> = _isTrainingCelebration.asStateFlow()
+
+    private val _trainingStars = MutableStateFlow(0)
+    val trainingStars: StateFlow<Int> = _trainingStars.asStateFlow()
+
+    // Sentence Identification (Receptive Matching) State
+    private val _currentIdentifyIndex = MutableStateFlow(0)
+    val currentIdentifyIndex: StateFlow<Int> = _currentIdentifyIndex.asStateFlow()
+
+    private val _currentIdentifyItem = MutableStateFlow(SentenceIdentifyCatalog.items[0])
+    val currentIdentifyItem: StateFlow<SentenceIdentifyItem> = _currentIdentifyItem.asStateFlow()
+
+    private val _identifyOptions = MutableStateFlow<List<WordCard>>(emptyList())
+    val identifyOptions: StateFlow<List<WordCard>> = _identifyOptions.asStateFlow()
+
+    private val _identifyFeedback = MutableStateFlow("Listen to the sentence, then tap the matching picture!")
+    val identifyFeedback: StateFlow<String> = _identifyFeedback.asStateFlow()
+
+    private val _isIdentifyCelebration = MutableStateFlow(false)
+    val isIdentifyCelebration: StateFlow<Boolean> = _isIdentifyCelebration.asStateFlow()
+
+    private val _identifyScore = MutableStateFlow(0)
+    val identifyScore: StateFlow<Int> = _identifyScore.asStateFlow()
+
+    // Spelling Game ("Spell the Picture") State
+    private val _currentSpellingItem = MutableStateFlow(SpellingCatalog.items[0])
+    val currentSpellingItem: StateFlow<SpellingWordItem> = _currentSpellingItem.asStateFlow()
+
+    private val _spellingSlots = MutableStateFlow<List<Char?>>(listOf(null, null, null))
+    val spellingSlots: StateFlow<List<Char?>> = _spellingSlots.asStateFlow()
+
+    private val _spellingTiles = MutableStateFlow<List<LetterBankTile>>(emptyList())
+    val spellingTiles: StateFlow<List<LetterBankTile>> = _spellingTiles.asStateFlow()
+
+    private val _isSpellingCelebration = MutableStateFlow(false)
+    val isSpellingCelebration: StateFlow<Boolean> = _isSpellingCelebration.asStateFlow()
+
+    private val _spellingFeedback = MutableStateFlow("Tap the letters to spell the picture!")
+    val spellingFeedback: StateFlow<String> = _spellingFeedback.asStateFlow()
+
+    private val _spellingStars = MutableStateFlow(0)
+    val spellingStars: StateFlow<Int> = _spellingStars.asStateFlow()
+
+    private val _spellingLevelFilter = MutableStateFlow(1) // 1: 3-letters, 2: 4-letters, 3: 5+ letters
+    val spellingLevelFilter: StateFlow<Int> = _spellingLevelFilter.asStateFlow()
+
     private var onlineFetchJob: Job? = null
 
     init {
@@ -146,6 +223,9 @@ class PictoWordViewModel(application: Application) : AndroidViewModel(applicatio
         // Initial setup
         checkFavoriteStatus("apple")
         startNewQuizRound(speakPrompt = false)
+        loadExercise(SentenceTrainingCatalog.levels[0].exercises[0], speakPrompt = false)
+        loadIdentifyItem(0, speakSentence = false)
+        loadSpellingItem(SpellingCatalog.items[0], speakWord = false)
     }
 
     fun onQueryChange(newQuery: String) {
@@ -412,6 +492,281 @@ class PictoWordViewModel(application: Application) : AndroidViewModel(applicatio
         } else {
             _quizFeedback.value = "That is ${selected.label}. Try finding ${target.label}!"
             ttsHelper.speak("That is ${selected.label}. Let us find ${target.label}!")
+        }
+    }
+
+    // ==================== SENTENCE TRAINING ====================
+    fun selectTrainingLevel(levelNumber: Int) {
+        triggerHaptic()
+        val lvl = SentenceTrainingCatalog.levels.find { it.levelNumber == levelNumber } ?: return
+        _currentTrainingLevel.value = levelNumber
+        _currentExerciseIndex.value = 0
+        loadExercise(lvl.exercises[0], speakPrompt = true)
+    }
+
+    fun selectExercise(index: Int) {
+        triggerHaptic()
+        val currentLvl = SentenceTrainingCatalog.levels.find { it.levelNumber == _currentTrainingLevel.value } ?: return
+        if (index in currentLvl.exercises.indices) {
+            _currentExerciseIndex.value = index
+            loadExercise(currentLvl.exercises[index], speakPrompt = true)
+        }
+    }
+
+    fun loadExercise(exercise: SentenceExercise, speakPrompt: Boolean = true) {
+        _currentExercise.value = exercise
+        _trainingPlacedCards.value = List(exercise.targetWords.size) { null }
+        _trainingAvailableChoices.value = SentenceTrainingCatalog.getExerciseChoices(exercise)
+        _isTrainingCompleted.value = false
+        _isTrainingCelebration.value = false
+        _trainingFeedback.value = "Build: ${exercise.promptAudioText}"
+        if (speakPrompt) {
+            ttsHelper.speak("Can you build: ${exercise.promptAudioText}?")
+        }
+    }
+
+    fun onTrainingCardTapped(card: WordCard) {
+        triggerHaptic()
+        val exercise = _currentExercise.value
+        val currentSlots = _trainingPlacedCards.value.toMutableList()
+        val nextEmptySlot = currentSlots.indexOfFirst { it == null }
+
+        if (nextEmptySlot == -1) return // all filled
+
+        val expectedWord = exercise.targetWords[nextEmptySlot]
+        if (card.word.equals(expectedWord, ignoreCase = true)) {
+            // Correct card!
+            currentSlots[nextEmptySlot] = card
+            _trainingPlacedCards.value = currentSlots
+
+            // Remove from available choices
+            _trainingAvailableChoices.value = _trainingAvailableChoices.value.filter { it.word != card.word }
+
+            // Pronounce the word
+            ttsHelper.speak(card.label)
+
+            // Check if all slots are now filled
+            if (currentSlots.all { it != null }) {
+                _isTrainingCompleted.value = true
+                _isTrainingCelebration.value = true
+                _trainingStars.value += 1
+                _trainingFeedback.value = "🌟 Great job! You built: ${exercise.promptAudioText}!"
+
+                viewModelScope.launch {
+                    delay(700)
+                    ttsHelper.speak(exercise.promptAudioText)
+                }
+            } else {
+                _trainingFeedback.value = "Good! What word comes next?"
+            }
+        } else {
+            // Incorrect attempt - gentle sensory guidance
+            _trainingFeedback.value = "That is ${card.label}. Listen again: '${exercise.promptAudioText}'"
+            ttsHelper.speak("That is ${card.label}. Try again for: ${exercise.promptAudioText}")
+        }
+    }
+
+    fun removePlacedTrainingCard(slotIndex: Int) {
+        triggerHaptic()
+        val currentSlots = _trainingPlacedCards.value.toMutableList()
+        val removedCard = currentSlots[slotIndex] ?: return
+        currentSlots[slotIndex] = null
+        _trainingPlacedCards.value = currentSlots
+
+        // Add back to choices if not present
+        if (_trainingAvailableChoices.value.none { it.word.equals(removedCard.word, ignoreCase = true) }) {
+            _trainingAvailableChoices.value = (_trainingAvailableChoices.value + removedCard).distinctBy { it.word }
+        }
+
+        _isTrainingCompleted.value = false
+        _isTrainingCelebration.value = false
+        _trainingFeedback.value = "Pick the next card!"
+    }
+
+    fun replayTrainingPrompt() {
+        triggerHaptic()
+        val exercise = _currentExercise.value
+        ttsHelper.speak("Can you build: ${exercise.promptAudioText}?")
+    }
+
+    fun speakTrainingFullSentence() {
+        triggerHaptic()
+        val exercise = _currentExercise.value
+        ttsHelper.speak(exercise.promptAudioText)
+    }
+
+    fun nextTrainingExercise() {
+        triggerHaptic()
+        val currentLvl = SentenceTrainingCatalog.levels.find { it.levelNumber == _currentTrainingLevel.value } ?: return
+        val nextIdx = _currentExerciseIndex.value + 1
+        if (nextIdx < currentLvl.exercises.size) {
+            selectExercise(nextIdx)
+        } else {
+            // Move to next level if available
+            val nextLvlNum = _currentTrainingLevel.value + 1
+            if (nextLvlNum <= SentenceTrainingCatalog.levels.size) {
+                selectTrainingLevel(nextLvlNum)
+            } else {
+                selectTrainingLevel(1)
+            }
+        }
+    }
+
+    fun resetTrainingExercise() {
+        triggerHaptic()
+        loadExercise(_currentExercise.value, speakPrompt = true)
+    }
+
+    // ==================== SENTENCE IDENTIFICATION (LISTEN & MATCH) ====================
+    fun loadIdentifyItem(index: Int, speakSentence: Boolean = true) {
+        if (index !in SentenceIdentifyCatalog.items.indices) return
+        _currentIdentifyIndex.value = index
+        val item = SentenceIdentifyCatalog.items[index]
+        _currentIdentifyItem.value = item
+        _identifyOptions.value = SentenceIdentifyCatalog.resolveItemOptions(item)
+        _isIdentifyCelebration.value = false
+        _identifyFeedback.value = "Tap the picture that matches the sentence!"
+
+        if (speakSentence) {
+            ttsHelper.speak(item.spokenSentence)
+        }
+    }
+
+    fun speakCurrentIdentifySentence() {
+        triggerHaptic()
+        ttsHelper.speak(_currentIdentifyItem.value.spokenSentence)
+    }
+
+    fun onIdentifyAnswer(selectedCard: WordCard) {
+        triggerHaptic()
+        val item = _currentIdentifyItem.value
+        val targetCard = SentenceIdentifyCatalog.getTargetCard(item)
+
+        if (selectedCard.word.equals(targetCard.word, ignoreCase = true)) {
+            _isIdentifyCelebration.value = true
+            _identifyScore.value += 1
+            _identifyFeedback.value = "⭐ ${item.explanation}"
+            ttsHelper.speak("Great job! ${item.explanation}")
+        } else {
+            _identifyFeedback.value = "That is ${selectedCard.label}. Listen again: \"${item.spokenSentence}\""
+            ttsHelper.speak("That is ${selectedCard.label}. Try again! ${item.spokenSentence}")
+        }
+    }
+
+    fun nextIdentifyItem() {
+        triggerHaptic()
+        val nextIdx = (_currentIdentifyIndex.value + 1) % SentenceIdentifyCatalog.items.size
+        loadIdentifyItem(nextIdx, speakSentence = true)
+    }
+
+    // ==================== SPELLING GAME ("SPELL THE PICTURE") ====================
+    fun setSpellingLevel(level: Int) {
+        triggerHaptic()
+        _spellingLevelFilter.value = level
+        val filtered = SpellingCatalog.items.filter { it.level == level }
+        if (filtered.isNotEmpty()) {
+            loadSpellingItem(filtered[0], speakWord = true)
+        }
+    }
+
+    fun loadSpellingItem(item: SpellingWordItem, speakWord: Boolean = true) {
+        _currentSpellingItem.value = item
+        _spellingSlots.value = List(item.word.length) { null }
+        _spellingTiles.value = SpellingCatalog.generateLetterBank(item.word, item.level)
+        _isSpellingCelebration.value = false
+        _spellingFeedback.value = "Tap the letters to spell ${item.label.uppercase()}!"
+        if (speakWord) {
+            ttsHelper.speak(item.label)
+        }
+    }
+
+    fun onSpellingTileClick(tile: LetterBankTile) {
+        if (tile.isUsed || _isSpellingCelebration.value) return
+        triggerHaptic()
+
+        // Speak the letter phonetically
+        ttsHelper.speak(tile.char.toString())
+
+        // Find the first empty slot
+        val currentSlots = _spellingSlots.value.toMutableList()
+        val emptyIndex = currentSlots.indexOfFirst { it == null }
+        if (emptyIndex == -1) return
+
+        currentSlots[emptyIndex] = tile.char
+        _spellingSlots.value = currentSlots
+
+        // Mark tile as used
+        _spellingTiles.value = _spellingTiles.value.map {
+            if (it.id == tile.id) it.copy(isUsed = true) else it
+        }
+
+        // Check if all slots are now filled
+        if (!currentSlots.contains(null)) {
+            val formedWord = currentSlots.map { it!! }.joinToString("")
+            val targetWord = _currentSpellingItem.value.word.uppercase()
+            if (formedWord.equals(targetWord, ignoreCase = true)) {
+                _isSpellingCelebration.value = true
+                _spellingStars.value += 1
+                _spellingFeedback.value = "⭐ Awesome! You spelled $targetWord!"
+                val spelledOut = targetWord.toList().joinToString(", ")
+                ttsHelper.speak("$spelledOut: ${_currentSpellingItem.value.label}! Fantastic spelling!")
+            } else {
+                _spellingFeedback.value = "Almost! Tap a letter to fix it."
+                ttsHelper.speak("Almost! Try again. ${_currentSpellingItem.value.label}")
+            }
+        }
+    }
+
+    fun removeSpellingSlot(index: Int) {
+        val currentSlots = _spellingSlots.value.toMutableList()
+        val removedChar = currentSlots.getOrNull(index) ?: return
+        triggerHaptic()
+
+        currentSlots[index] = null
+        _spellingSlots.value = currentSlots
+        _isSpellingCelebration.value = false
+        _spellingFeedback.value = "Tap the letters to spell ${_currentSpellingItem.value.label.uppercase()}!"
+
+        // Unmark one matching used tile in bank
+        var restored = false
+        _spellingTiles.value = _spellingTiles.value.map {
+            if (!restored && it.isUsed && it.char == removedChar) {
+                restored = true
+                it.copy(isUsed = false)
+            } else it
+        }
+    }
+
+    fun resetSpellingWord() {
+        triggerHaptic()
+        loadSpellingItem(_currentSpellingItem.value, speakWord = true)
+    }
+
+    fun nextSpellingWord() {
+        triggerHaptic()
+        val levelItems = SpellingCatalog.items.filter { it.level == _spellingLevelFilter.value }
+        val currentIdx = levelItems.indexOfFirst { it.id == _currentSpellingItem.value.id }
+        val nextIdx = if (currentIdx != -1) (currentIdx + 1) % levelItems.size else 0
+        loadSpellingItem(levelItems[nextIdx], speakWord = true)
+    }
+
+    fun speakCurrentSpellingWord() {
+        triggerHaptic()
+        ttsHelper.speak(_currentSpellingItem.value.label)
+    }
+
+    fun provideSpellingHint() {
+        if (_isSpellingCelebration.value) return
+        triggerHaptic()
+        val target = _currentSpellingItem.value.word.uppercase()
+        val currentSlots = _spellingSlots.value
+        val nextIndex = currentSlots.indexOfFirst { it == null }
+        if (nextIndex == -1) return
+
+        val neededChar = target[nextIndex]
+        val matchingTile = _spellingTiles.value.firstOrNull { !it.isUsed && it.char == neededChar }
+        if (matchingTile != null) {
+            onSpellingTileClick(matchingTile)
         }
     }
 

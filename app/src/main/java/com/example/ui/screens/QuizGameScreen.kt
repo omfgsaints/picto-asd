@@ -27,9 +27,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -41,10 +41,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -58,6 +63,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.model.WordCard
+import com.example.ui.components.PictoSymbol
+import com.example.ui.components.PictureSpellingView
 import com.example.ui.viewmodel.PictoWordViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,6 +73,9 @@ fun QuizGameScreen(
     viewModel: PictoWordViewModel,
     modifier: Modifier = Modifier
 ) {
+    // 0: Match Picture, 1: Spell the Picture
+    var selectedGameTab by rememberSaveable { mutableIntStateOf(0) }
+
     val targetCard by viewModel.quizTargetCard.collectAsStateWithLifecycle()
     val options by viewModel.quizOptions.collectAsStateWithLifecycle()
     val score by viewModel.quizScore.collectAsStateWithLifecycle()
@@ -78,85 +88,246 @@ fun QuizGameScreen(
     Scaffold(
         modifier = modifier.fillMaxSize(),
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = "⭐ Picture Game",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold
-                    )
-                },
-                actions = {
-                    // Star Score Badge
-                    Surface(
-                        shape = RoundedCornerShape(16.dp),
-                        color = Color(0xFFFEF3C7),
-                        modifier = Modifier.padding(end = 12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Star,
-                                contentDescription = "Stars",
-                                tint = Color(0xFFF59E0B),
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "$score",
-                                fontWeight = FontWeight.Black,
-                                fontSize = 16.sp,
-                                color = Color(0xFFB45309)
-                            )
+            Column {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = if (selectedGameTab == 0) "🎯 Match the Picture" else "🔤 Spell the Picture",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontSize = 22.sp
+                        )
+                    },
+                    actions = {
+                        if (selectedGameTab == 0) {
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = Color(0xFFFEF3C7),
+                                modifier = Modifier.padding(end = 12.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Star,
+                                        contentDescription = "Stars",
+                                        tint = Color(0xFFF59E0B),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "$score",
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 16.sp,
+                                        color = Color(0xFFB45309)
+                                    )
+                                }
+                            }
                         }
-                    }
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.background
+                    )
                 )
-            )
+
+                TabRow(
+                    selectedTabIndex = selectedGameTab,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    contentColor = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Tab(
+                        selected = selectedGameTab == 0,
+                        onClick = { selectedGameTab = 0 },
+                        text = {
+                            Text(
+                                text = "🎯 Match Word",
+                                fontWeight = if (selectedGameTab == 0) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 14.sp
+                            )
+                        },
+                        modifier = Modifier.testTag("tab_game_match")
+                    )
+
+                    Tab(
+                        selected = selectedGameTab == 1,
+                        onClick = { selectedGameTab = 1 },
+                        text = {
+                            Text(
+                                text = "🔤 Spell Picture",
+                                fontWeight = if (selectedGameTab == 1) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 14.sp
+                            )
+                        },
+                        modifier = Modifier.testTag("tab_game_spell")
+                    )
+                }
+            }
         }
     ) { innerPadding ->
-        if (isLandscape) {
-            // Landscape Dual-Pane Quiz
-            Row(
+        if (selectedGameTab == 1) {
+            // "Spell the Picture" Game with Real Photos and Letter Bank
+            PictureSpellingView(
+                viewModel = viewModel,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // Left Pane: Prompt Card, Audio Replay, Feedback, Next Button
+            )
+        } else {
+            // "Match the Picture" Listening Game
+            if (isLandscape) {
+                // Landscape Dual-Pane
+                Row(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Left Pane: Target Word Prompt & Controls
+                    Column(
+                        modifier = Modifier
+                            .weight(0.42f)
+                            .fillMaxHeight()
+                            .verticalScroll(rememberScrollState()),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        QuizPromptBanner(
+                            targetCard = targetCard,
+                            onHearAgain = { targetCard?.let { viewModel.speakCard(it) } }
+                        )
+
+                        Text(
+                            text = feedback,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 18.sp,
+                            color = if (isCelebration) Color(0xFF059669) else MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 8.dp)
+                        )
+
+                        Button(
+                            onClick = { viewModel.startNewQuizRound(speakPrompt = true) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(52.dp)
+                                .testTag("quiz_next_button"),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            )
+                        ) {
+                            Text(
+                                text = "Next Word",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
+                        }
+                    }
+
+                    // Right Pane: 2x2 Choice Cards
+                    Column(
+                        modifier = Modifier
+                            .weight(0.58f)
+                            .fillMaxHeight()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        val chunked = options.chunked(2)
+                        chunked.forEach { rowCards ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                rowCards.forEach { card ->
+                                    QuizChoiceCard(
+                                        card = card,
+                                        isTarget = card.word.equals(targetCard?.word, ignoreCase = true),
+                                        isCelebration = isCelebration,
+                                        onSelect = { viewModel.onQuizAnswer(card) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Portrait Vertical Flow
                 Column(
                     modifier = Modifier
-                        .weight(0.42f)
-                        .fillMaxHeight()
-                        .verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     QuizPromptBanner(
                         targetCard = targetCard,
                         onHearAgain = { targetCard?.let { viewModel.speakCard(it) } }
                     )
 
+                    Spacer(modifier = Modifier.height(14.dp))
+
                     Text(
                         text = feedback,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 18.sp,
                         color = if (isCelebration) Color(0xFF059669) else MaterialTheme.colorScheme.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 8.dp)
+                        textAlign = TextAlign.Center
                     )
 
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text(
+                        text = "Touch the matching picture:",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp)
+                    )
+
+                    val chunked = options.chunked(2)
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        chunked.forEach { rowCards ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                rowCards.forEach { card ->
+                                    QuizChoiceCard(
+                                        card = card,
+                                        isTarget = card.word.equals(targetCard?.word, ignoreCase = true),
+                                        isCelebration = isCelebration,
+                                        onSelect = { viewModel.onQuizAnswer(card) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
                     Button(
-                        onClick = { viewModel.startNewQuizRound() },
+                        onClick = { viewModel.startNewQuizRound(speakPrompt = true) },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp)
-                            .testTag("quiz_next_round_button"),
+                            .testTag("quiz_next_button"),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
@@ -165,114 +336,15 @@ fun QuizGameScreen(
                         Text(
                             text = "Next Word",
                             style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Icon(Icons.Default.ArrowForward, contentDescription = null)
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
                     }
+
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
-
-                // Right Pane: 2x2 Choice Cards
-                Column(
-                    modifier = Modifier
-                        .weight(0.58f)
-                        .fillMaxHeight()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    val chunked = options.chunked(2)
-                    chunked.forEach { rowCards ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            rowCards.forEach { card ->
-                                QuizChoiceCard(
-                                    card = card,
-                                    isTarget = card.word.equals(targetCard?.word, ignoreCase = true),
-                                    isCelebration = isCelebration,
-                                    onSelect = { viewModel.onQuizAnswer(card) },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            // Portrait Vertical Flow
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                QuizPromptBanner(
-                    targetCard = targetCard,
-                    onHearAgain = { targetCard?.let { viewModel.speakCard(it) } }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = feedback,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isCelebration) Color(0xFF059669) else MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    val chunked = options.chunked(2)
-                    chunked.forEach { rowCards ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            rowCards.forEach { card ->
-                                QuizChoiceCard(
-                                    card = card,
-                                    isTarget = card.word.equals(targetCard?.word, ignoreCase = true),
-                                    isCelebration = isCelebration,
-                                    onSelect = { viewModel.onQuizAnswer(card) },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Button(
-                    onClick = { viewModel.startNewQuizRound() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp)
-                        .testTag("quiz_next_round_button"),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Text(
-                        text = "Next Word",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Icon(Icons.Default.ArrowForward, contentDescription = null)
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }
@@ -304,6 +376,7 @@ private fun QuizPromptBanner(
             Text(
                 text = "Listen carefully:",
                 style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
 
@@ -313,6 +386,7 @@ private fun QuizPromptBanner(
                 text = targetCard?.label ?: "...",
                 style = MaterialTheme.typography.displayMedium,
                 fontWeight = FontWeight.Black,
+                fontSize = 36.sp,
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center
             )
@@ -325,15 +399,15 @@ private fun QuizPromptBanner(
                 modifier = Modifier.testTag("quiz_replay_speech_button")
             ) {
                 Icon(
-                    imageVector = Icons.Default.VolumeUp,
+                    imageVector = Icons.AutoMirrored.Filled.VolumeUp,
                     contentDescription = "Hear word again",
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Hear Again 🔊",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
+                    fontSize = 17.sp
                 )
             }
         }
@@ -361,7 +435,7 @@ private fun QuizChoiceCard(
     Card(
         modifier = modifier
             .scale(scale)
-            .height(140.dp)
+            .height(150.dp)
             .clip(RoundedCornerShape(22.dp))
             .clickable { onSelect() }
             .testTag("quiz_card_${card.word}"),
@@ -371,9 +445,9 @@ private fun QuizChoiceCard(
         ),
         border = CardDefaults.outlinedCardBorder().copy(
             brush = androidx.compose.ui.graphics.SolidColor(
-                if (highlightCorrect) Color(0xFF10B981) else card.category.primaryColor.copy(alpha = 0.4f)
+                if (highlightCorrect) Color(0xFF10B981) else card.category.primaryColor.copy(alpha = 0.5f)
             ),
-            width = if (highlightCorrect) 3.dp else 1.5.dp
+            width = if (highlightCorrect) 3.5.dp else 2.dp
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = if (highlightCorrect) 8.dp else 2.dp)
     ) {
@@ -386,16 +460,17 @@ private fun QuizChoiceCard(
                 verticalArrangement = Arrangement.Center,
                 modifier = Modifier.padding(10.dp)
             ) {
-                Text(
-                    text = card.emoji,
-                    fontSize = 46.sp,
-                    textAlign = TextAlign.Center
+                PictoSymbol(
+                    card = card,
+                    size = 68.dp,
+                    fontSize = 42.sp
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = card.label,
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Black,
+                    fontSize = 19.sp,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center
                 )

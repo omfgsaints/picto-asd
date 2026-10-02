@@ -17,10 +17,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.ChatBubble
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -55,8 +57,9 @@ enum class AppNavDestination(
     val unselectedIcon: ImageVector,
     val testTag: String
 ) {
+    AAC_BOARD("AAC Board", Icons.Filled.GridView, Icons.Outlined.GridView, "nav_aac_board"),
     EXPLORER("Words", Icons.Filled.AutoStories, Icons.Outlined.AutoStories, "nav_explorer"),
-    AAC_STRIP("Sentence", Icons.Filled.RecordVoiceOver, Icons.Filled.ChatBubble, "nav_sentence"),
+    AAC_STRIP("Sentences", Icons.Filled.RecordVoiceOver, Icons.Filled.ChatBubble, "nav_sentence"),
     QUIZ("Quiz", Icons.Filled.School, Icons.Outlined.School, "nav_quiz"),
     MY_WORDS("My Cards", Icons.Filled.Favorite, Icons.Outlined.FavoriteBorder, "nav_my_words")
 }
@@ -197,6 +200,9 @@ private fun ScreenContent(
     onNavigateToExplorer: () -> Unit
 ) {
     when (currentDestination) {
+        AppNavDestination.AAC_BOARD -> {
+            AacBoardScreen(viewModel = viewModel)
+        }
         AppNavDestination.EXPLORER -> {
             WordExplorerScreen(viewModel = viewModel)
         }

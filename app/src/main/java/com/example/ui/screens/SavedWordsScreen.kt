@@ -18,10 +18,10 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -54,6 +54,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.model.WordCard
 import com.example.ui.components.AddCustomWordDialog
+import com.example.ui.components.PictoSymbol
 import com.example.ui.viewmodel.PictoWordViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -245,34 +246,19 @@ private fun SavedCardTile(
                 }
             }
 
-            val localFile = remember(card.customImagePath) {
-                card.customImagePath?.let { path ->
-                    val f = java.io.File(path)
-                    if (f.exists() && f.length() > 0) f else null
-                }
-            }
+            PictoSymbol(
+                card = card,
+                size = 56.dp,
+                fontSize = 36.sp
+            )
 
-            if (localFile != null || !card.imageUrl.isNullOrBlank()) {
-                coil.compose.AsyncImage(
-                    model = localFile ?: card.imageUrl,
-                    contentDescription = card.label,
-                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                )
-            } else {
-                Text(
-                    text = card.emoji,
-                    fontSize = 44.sp,
-                    textAlign = TextAlign.Center
-                )
-            }
+            Spacer(modifier = Modifier.height(4.dp))
 
             Text(
                 text = card.label,
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Black,
+                fontSize = 18.sp,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -283,7 +269,7 @@ private fun SavedCardTile(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Default.VolumeUp,
+                    imageVector = Icons.AutoMirrored.Filled.VolumeUp,
                     contentDescription = null,
                     tint = card.category.primaryColor,
                     modifier = Modifier.size(16.dp)
@@ -292,6 +278,7 @@ private fun SavedCardTile(
                 Text(
                     text = "Tap to read",
                     style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
                     color = card.category.primaryColor
                 )
             }

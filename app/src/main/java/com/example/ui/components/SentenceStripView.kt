@@ -26,7 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.Backspace
+import androidx.compose.material.icons.automirrored.filled.Backspace
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PlayArrow
@@ -119,7 +119,7 @@ fun SentenceStripView(
                                 .testTag("strip_backspace_button")
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Backspace,
+                                imageVector = Icons.AutoMirrored.Filled.Backspace,
                                 contentDescription = "Remove last word",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(20.dp)
@@ -197,49 +197,34 @@ fun SentenceStripView(
                                 .scale(scale)
                                 .clickable { onCardClick(index, item) }
                                 .testTag("strip_card_$index"),
-                            shape = RoundedCornerShape(16.dp),
-                            color = MaterialTheme.colorScheme.surface,
+                            shape = RoundedCornerShape(18.dp),
+                            color = item.category.lightBgColor,
                             shadowElevation = if (isPlaying) 6.dp else 2.dp,
                             border = CardDefaults.outlinedCardBorder().copy(
                                 brush = androidx.compose.ui.graphics.SolidColor(
-                                    if (isPlaying) borderColor else item.category.primaryColor.copy(alpha = 0.3f)
+                                    if (isPlaying) borderColor else item.category.primaryColor.copy(alpha = 0.5f)
                                 ),
-                                width = if (isPlaying) 3.dp else 1.5.dp
+                                width = if (isPlaying) 3.dp else 2.dp
                             )
                         ) {
                             Column(
                                 modifier = Modifier
-                                    .width(82.dp)
+                                    .width(96.dp)
                                     .padding(8.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                val localFile = remember(item.customImagePath) {
-                                    item.customImagePath?.let { path ->
-                                        val f = java.io.File(path)
-                                        if (f.exists() && f.length() > 0) f else null
-                                    }
-                                }
+                                PictoSymbol(
+                                    card = item,
+                                    size = 46.dp,
+                                    fontSize = 28.sp
+                                )
 
-                                if (localFile != null || !item.imageUrl.isNullOrBlank()) {
-                                    coil.compose.AsyncImage(
-                                        model = localFile ?: item.imageUrl,
-                                        contentDescription = item.label,
-                                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .clip(RoundedCornerShape(8.dp))
-                                    )
-                                } else {
-                                    Text(
-                                        text = item.emoji,
-                                        fontSize = 32.sp
-                                    )
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.height(6.dp))
                                 Text(
                                     text = item.label,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Black,
+                                    fontSize = 16.sp,
                                     color = MaterialTheme.colorScheme.onSurface,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis,

@@ -31,7 +31,7 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.OfflinePin
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.Spellcheck
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -238,11 +238,11 @@ fun PictureCardView(
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
-                    // Fallback to high-contrast crisp vector pictogram
-                    Text(
-                        text = card.emoji,
-                        fontSize = 100.sp,
-                        textAlign = TextAlign.Center
+                    // Fallback to high-contrast crisp pictorial symbol
+                    PictoSymbol(
+                        card = card,
+                        size = 160.dp,
+                        fontSize = 80.sp
                     )
                 }
 
@@ -256,10 +256,10 @@ fun PictureCardView(
                         .padding(6.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.VolumeUp,
+                        imageVector = Icons.AutoMirrored.Filled.VolumeUp,
                         contentDescription = "Tap to speak",
                         tint = Color.White,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
 
@@ -437,7 +437,7 @@ fun PictureCardView(
                     )
                 ) {
                     Icon(
-                        imageVector = Icons.Default.VolumeUp,
+                        imageVector = Icons.AutoMirrored.Filled.VolumeUp,
                         contentDescription = null,
                         modifier = Modifier.size(24.dp)
                     )

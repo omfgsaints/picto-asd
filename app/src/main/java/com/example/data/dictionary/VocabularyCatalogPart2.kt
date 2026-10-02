@@ -136,6 +136,16 @@ object VocabularyCatalogPart2 {
         WordCard("bye", "Bye", WordCategory.COMMUNICATION, "👋", "BYE", "Quick friendly farewell wave", "Bye bye, see you soon!"),
         WordCard("good morning", "Good Morning", WordCategory.COMMUNICATION, "🌅", "GOOD MORN • ING", "Greeting upon waking to a bright new day", "Good morning, time for breakfast."),
         WordCard("good night", "Good Night", WordCategory.COMMUNICATION, "🌙", "GOOD NIGHT", "Evening blessing before sleep", "Good night, sweet dreams."),
-        WordCard("okay", "Okay", WordCategory.COMMUNICATION, "👌", "O • KAY", "Agreement or feeling fine", "Everything is okay.")
+        WordCard("okay", "Okay", WordCategory.COMMUNICATION, "👌", "O • KAY", "Agreement or feeling fine", "Everything is okay."),
+        WordCard("i see", "I See", WordCategory.COMMUNICATION, "👀", "I SEE", "Observing with eyes", "I see a cute puppy."),
+        WordCard("the", "The", WordCategory.COMMUNICATION, "👉", "THE", "Pointer word", "The cat is warm."),
+        WordCard("is", "Is", WordCategory.COMMUNICATION, "✨", "IS", "Being or action connector", "The dog is happy."),
+        WordCard("a", "A", WordCategory.COMMUNICATION, "☝️", "A", "One single item", "A big red ball."),
+        WordCard("and", "And", WordCategory.COMMUNICATION, "➕", "AND", "Joining things together", "Milk and cookies."),
+        WordCard("in", "In", WordCategory.COMMUNICATION, "📥", "IN", "Inside something", "In the box."),
+        WordCard("on", "On", WordCategory.COMMUNICATION, "🔝", "ON", "Resting on top", "On the table."),
+        WordCard("my", "My", WordCategory.COMMUNICATION, "🙋", "MY", "Belonging to me", "This is my toy."),
+        WordCard("drinks", "Drinks", WordCategory.ACTIONS, "🥤", "DRINKS", "Swallowing a beverage", "Cat drinks fresh water."),
+        WordCard("eats", "Eats", WordCategory.ACTIONS, "🍽️", "EATS", "Chewing and tasting food", "Boy eats a snack.")
     )
 }
